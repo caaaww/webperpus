@@ -6,18 +6,18 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('🌱 Seeding database...')
 
-  // Reset users and create single admin user
-  await prisma.user.deleteMany({})
-
+  // Create or update single admin user
   const hashedPassword = await bcrypt.hash('bidang1himafi', 10)
-  const admin = await prisma.user.create({
-    data: {
+  const admin = await prisma.user.upsert({
+    where: { username: 'admin' },
+    update: {},
+    create: {
       username: 'admin',
       password: hashedPassword,
       role: 'admin',
     },
   })
-  console.log('✅ Single Admin user created:', admin.username)
+  console.log('✅ Single Admin user ready:', admin.username)
 
   // Create sample books
   const books = await Promise.all([
