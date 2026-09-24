@@ -11,7 +11,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Username dan password diperlukan' }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({ where: { username } })
+    let user = await prisma.user.findUnique({ where: { username } })
+
+    // Auto-create initial admin user if database User table is empty
+    if (!user && username === 'admin') {
+      try {
+        const userCount = await prisma.user.count()
+        if (userCount === 0) {
+          const hashedPassword = await bcrypt.hash('bidang1himafi', 10)
+          user = await prisma.user.create({
+            data: {
+              username: 'admin',
+              password: hashedPassword,
+              role: 'admin',
+            },
+          })
+        }
+      } catch (e) {
+        console.error('Auto seed admin error:', e)
+      }
+    }
 
     if (!user) {
       return NextResponse.json({ error: 'Username atau password salah' }, { status: 401 })
@@ -33,8 +52,8 @@ export async function POST(req: NextRequest) {
     })
 
     return response
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error)
-    return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 })
+    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan server' }, { status: 500 })
   }
 }
