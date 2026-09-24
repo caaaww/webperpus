@@ -148,8 +148,9 @@ export default function MembersPage() {
                     <tr key={m.id}>
                       <td>
                         {m.photo ? (
-                          <Image src={m.photo} alt={m.name} width={40} height={40}
-                            className="member-avatar" style={{borderRadius:'50%',objectFit:'cover'}}/>
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={m.photo} alt={m.name} width={40} height={40}
+                            className="member-avatar" style={{width:40,height:40,borderRadius:'50%',objectFit:'cover'}}/>
                         ) : (
                           <div className="member-avatar-placeholder">
                             {m.name.charAt(0).toUpperCase()}

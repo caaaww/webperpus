@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
 
 export async function GET(req: NextRequest) {
   const session = await getSession()
@@ -58,17 +55,11 @@ export async function POST(req: NextRequest) {
     let photoPath: string | undefined
 
     if (photoFile && photoFile instanceof File && photoFile.size > 0) {
-      const uploadDir = join(process.cwd(), 'public', 'uploads')
-      if (!existsSync(uploadDir)) {
-        await mkdir(uploadDir, { recursive: true })
-      }
-
       const bytes = await photoFile.arrayBuffer()
       const buffer = Buffer.from(bytes)
-      const ext = photoFile.name.split('.').pop()
-      const filename = `member-${Date.now()}.${ext}`
-      await writeFile(join(uploadDir, filename), buffer)
-      photoPath = `/uploads/${filename}`
+      const base64 = buffer.toString('base64')
+      const mimeType = photoFile.type || 'image/jpeg'
+      photoPath = `data:${mimeType};base64,${base64}`
     }
 
     const member = await prisma.member.create({
