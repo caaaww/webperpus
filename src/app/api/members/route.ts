@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import cloudinary from '@/lib/cloudinary' // Import config cloudinary yang sudah dibuat
 
 export async function GET(req: NextRequest) {
   const session = await getSession()
@@ -52,20 +53,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'NIM sudah terdaftar' }, { status: 400 })
     }
 
-    let photoPath: string | undefined
+    let photoUrl: string | undefined
 
+    // Upload foto ke Cloudinary jika ada file yang dikirim
     if (photoFile && photoFile instanceof File && photoFile.size > 0) {
       const bytes = await photoFile.arrayBuffer()
       const buffer = Buffer.from(bytes)
-      const base64 = buffer.toString('base64')
-      const mimeType = photoFile.type || 'image/jpeg'
-      photoPath = `data:${mimeType};base64,${base64}`
+
+      // Proses upload stream ke Cloudinary
+      const uploadResult = await new Promise<{ secure_url: string }>((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+          { folder: 'perpus-members' }, // Nama folder di Cloudinary
+          (error, result) => {
+            if (error) reject(error);
+            if (result) resolve(result);
+          }
+        ).end(buffer);
+      });
+
+      photoUrl = uploadResult.secure_url;
     }
 
     const member = await prisma.member.create({
       data: {
-        name, nim,
-        photo: photoPath,
+        name, 
+        nim,
+        photo: photoUrl || null, // Menyimpan URL Cloudinary, bukan base64
         address: address || null,
         phone: phone || null,
         expiredAt: expiredAtStr ? new Date(expiredAtStr) : null,
